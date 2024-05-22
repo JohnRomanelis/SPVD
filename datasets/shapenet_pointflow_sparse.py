@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from datasets import ShapeNet15kPointClouds
+from datasets.shapenet_pointflow import ShapeNet15kPointClouds
 from torchsparse.utils.quantize import sparse_quantize
 from torchsparse import SparseTensor
 import random 
