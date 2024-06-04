@@ -76,21 +76,30 @@ class SimpleUpBlock(nn.Module):
     def __init__(self, n_emb, ni, nf):
         super().__init__()
 
-        self.t_emb = TimeEmbeddingBlock(n_emb, ni)
+        self.t_emb = TimeEmbeddingBlock(n_emb, ni//2)
+
+        self.feature_fusion = nn.Sequential(
+            spnn.Conv3d(ni, ni//2, kernel_size=1),
+            spnn.BatchNorm(ni//2),
+            spnn.ReLU()
+        )
 
         self.conv = nn.Sequential(
-            spnn.Conv3d(ni, ni, kernel_size=3),
-            spnn.BatchNorm(ni),
+            spnn.Conv3d(ni//2, ni//2, kernel_size=3),
+            spnn.BatchNorm(ni//2),
             spnn.ReLU()
         )
 
         self.up_conv = nn.Sequential(
-            spnn.Conv3d(ni, nf, kernel_size=2, stride=2, transposed=True),
+            spnn.Conv3d(ni//2, nf, kernel_size=2, stride=2, transposed=True),
             spnn.BatchNorm(nf),
             spnn.ReLU()
         )
     
     def forward(self, x, t):
+        # feature fusion
+        x = self.feature_fusion(x)
+
         # include time embedding information
         x.F = self.t_emb(x.F, t, x.C[:, 0])
         
@@ -124,15 +133,20 @@ class SPVUnet(nn.Module):
         # Down Conv 3
         self.down_conv3 = SimpleDownBlock(n_emb, 128, 256)
 
+        # Down Conv 4
+        self.down_conv4 = SimpleDownBlock(n_emb, 256, 512)
+
+
+        self.up_conv0 = SimpleUpBlock(n_emb, 2 * 512, 256)
 
         # Up Conv 1
-        self.up_conv1 = SimpleUpBlock(n_emb, 256, 128)
+        self.up_conv1 = SimpleUpBlock(n_emb, 2 * 256, 128)
 
         # Up Conv 2 
-        self.up_conv2 = SimpleUpBlock(n_emb, 128, 64)
+        self.up_conv2 = SimpleUpBlock(n_emb, 2 * 128, 64)
 
         # Up Conv 3
-        self.up_conv3 = SimpleUpBlock(n_emb, 64, 32)
+        self.up_conv3 = SimpleUpBlock(n_emb, 2 * 64, 32)
 
         # Point MLPs
         self.PointMLP1 = nn.ModuleList([
@@ -141,12 +155,12 @@ class SPVUnet(nn.Module):
         ])
 
         self.PointMLP2 = nn.ModuleList([
-            nn.Linear(128, 256),
-            nn.Sequential(nn.BatchNorm1d(256), nn.ReLU())
+            nn.Linear(128, 512),
+            nn.Sequential(nn.BatchNorm1d(512), nn.ReLU())
         ])
 
         self.PointMLP3 = nn.ModuleList([
-            nn.Linear(256, 128),
+            nn.Linear(512, 128),
             nn.Sequential(nn.BatchNorm1d(128), nn.ReLU())
         ])
 
@@ -157,7 +171,7 @@ class SPVUnet(nn.Module):
 
         # Output UNET covn
         self.out_unet = nn.Sequential(
-            spnn.Conv3d(32, 32, kernel_size=3),
+            spnn.Conv3d(2 * 32, 32, kernel_size=3),
             spnn.BatchNorm(32),
             spnn.ReLU()
         )
@@ -204,13 +218,20 @@ class SPVUnet(nn.Module):
         # 5. Down Conv 3
         x4 = self.down_conv3(x3p, emb)
 
+        # 5.5 Down Conv 4
+        x4n = self.down_conv4(x4, emb)
+
         # 6. Third Point Stage
-        z3 = voxel_to_point(x4, z2)
+        z3 = voxel_to_point(x4n, z2)
         z3.F = self.PointMLP2[1](z3.F + self.PointMLP2[0](z2.F))
-        x4p = point_to_voxel(x4, z3)
+        x4p = point_to_voxel(x4n, z3)
+
+
+        # 7. Up Conv 0
+        x4n = self.up_conv0(torchsparse.cat([x4p, x4n]), emb)
 
         # 7. Up Conv 1
-        x5 = self.up_conv1(x4, emb)
+        x5 = self.up_conv1(torchsparse.cat([x4, x4n]), emb)
         
         # 8. Fourth Point Stage
         z4 = voxel_to_point(x5, z3)
@@ -218,10 +239,10 @@ class SPVUnet(nn.Module):
         x5p = point_to_voxel(x5, z4)
 
         # 9. Up Conv 2
-        x6 = self.up_conv2(x5p + x3p, emb)
+        x6 = self.up_conv2(torchsparse.cat([x5p, x3p]), emb)
 
         # 10. Up Conv 3
-        x7 = self.up_conv3(x6 + x2, emb)
+        x7 = self.up_conv3(torchsparse.cat([x6, x2]), emb)
 
         # 11. Fifth Point Stage
         z5 = voxel_to_point(x7, z4)
@@ -229,7 +250,7 @@ class SPVUnet(nn.Module):
         x5p = point_to_voxel(x7, z5)
 
         # 12. Output UNET Conv
-        x8 = self.out_unet(x5p + x1)
+        x8 = self.out_unet(torchsparse.cat([x5p, x1]))
 
         # 13. Last Point Stage
         z6 = voxel_to_point(x8, z5)
