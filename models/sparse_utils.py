@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import torchsparse
 import torchsparse.nn.functional as spf
 from torchsparse import SparseTensor
@@ -8,10 +9,16 @@ from torchsparse.nn.utils import *
 from torchsparse.utils import *
 from torchsparse.utils.tensor_cache import TensorCache
 import torch_scatter
-from typing import Union, Tuple
+from typing import List, Union, Tuple
+from itertools import repeat
 
-__all__ = ["initial_voxelize", "point_to_voxel", "voxel_to_point", "PointTensor"]
+__all__ = ["initial_voxelize", "point_to_voxel", "voxel_to_point", "PointTensor", "unique", 
+           "ravel_hash_torch", "sparse_quantize_torch", "batched_ravel_hash_torch", "batch_sparse_quantize_torch"]
 
+# The initial section of this code is reused from the SPVNAS project's original codebase,
+# available at https://github.com/mit-han-lab/spvnas/blob/master/core/models/utils.py.
+# Below, I introduce my own code to transform a BxNx3 tensor directly into a SparseTensor,
+# eliminating the use of numpy and thereby avoiding the need to transfer data to the CPU.
 
 class PointTensor(SparseTensor):
     def __init__(
@@ -24,7 +31,6 @@ class PointTensor(SparseTensor):
         self._caches.idx_query = dict()
         self._caches.idx_query_devox = dict()
         self._caches.weights_devox = dict()
-
 
 
 def sphashquery(query, target, kernel_size=1):
@@ -126,3 +132,151 @@ def voxel_to_point(x, z, nearest=False):
         new_tensor._caches = z._caches
 
     return new_tensor
+
+
+### New code starts here ###
+def unique(x, dim=None):
+    """Unique elements of x and indices of those unique elements
+    https://github.com/pytorch/pytorch/issues/36748#issuecomment-619514810
+
+    e.g.
+
+    unique(tensor([
+        [1, 2, 3],
+        [1, 2, 4],
+        [1, 2, 3],
+        [1, 2, 5]
+    ]), dim=0)
+    => (tensor([[1, 2, 3],
+                [1, 2, 4],
+                [1, 2, 5]]),
+        tensor([0, 1, 3]))
+    """
+    unique, inverse = torch.unique(
+        x, sorted=True, return_inverse=True, dim=dim)
+    perm = torch.arange(inverse.size(0), dtype=inverse.dtype,
+                        device=inverse.device)
+    inverse, perm = inverse.flip([0]), perm.flip([0])
+    return unique, inverse.new_empty(unique.size(dim)).scatter_(0, inverse, perm)
+
+@torch.no_grad()
+def ravel_hash_torch(x):
+    device = x.device
+    assert x.ndim == 2, x.shape
+
+    x = x - x.min(dim=0).values
+    x = x.long() # This commmand is not equivalent but the int64 range should cover our needs. PyTorch support for uint64 is limited. 
+    xmax = x.max(dim=0).values.long() + 1
+
+    h = torch.zeros(x.shape[0], dtype=torch.long).to(x.device)
+    for k in range(x.shape[1] - 1):
+        h += x[:, k]
+        h *= xmax[k + 1]
+    h += x[:, -1]
+    return h
+
+def sparse_quantize_torch(
+    coords,
+    voxel_size: Union[float, Tuple[float, ...]] = 1,
+    *,
+    return_index: bool = False,
+):
+    if isinstance(voxel_size, (float, int)):
+        voxel_size = tuple(repeat(voxel_size, 3))
+    assert isinstance(voxel_size, tuple) and len(voxel_size) == 3
+
+    voxel_size = torch.tensor(voxel_size)
+    coords = torch.floor(coords / voxel_size).int() # torch.int = torch.int32
+
+    _, indices = unique(
+        ravel_hash_torch(coords), dim=0
+    )
+    coords = coords[indices]
+
+    outputs = [coords]
+    if return_index:
+        outputs += [indices]
+
+    return outputs[0] if len(outputs) == 1 else outputs
+
+@torch.no_grad()
+def batched_ravel_hash_torch(x):
+    device = x.device
+    #assert x.ndim == 2, x.shape
+    x = x - x.min(dim=1, keepdims=True).values
+    x = x.long() # This commmand is not equivalent but the int64 range should cover our needs. PyTorch support for uint64 is limited. 
+    xmax = x.max(dim=1, keepdims=True).values.long() + 1
+
+    h = torch.zeros((x.shape[0],x.shape[1]), dtype=torch.long).to(x.device)
+    for k in range(x.shape[2] - 1):
+        h[:] += x[:, :, k]
+        h[:] *= xmax[:, :, k + 1]
+    h[:] += x[:, :, -1]
+    return h
+
+def batch_sparse_quantize_torch(
+    coords, # B x N x 3
+    voxel_size: Union[float, Tuple[float, ...]] = 1,
+    *,
+    batch_index = None,
+    return_index: bool = False,
+    return_batch_index = True
+):
+    if isinstance(voxel_size, (float, int)):
+        voxel_size = tuple(repeat(voxel_size, 3))
+    assert isinstance(voxel_size, tuple) and len(voxel_size) == 3
+
+    B, N, C = coords.shape
+    
+    if batch_index == None:
+        batch_index = torch.arange(0, B).repeat_interleave(N).unsqueeze(-1).to(coords.device)
+        
+    voxel_size = torch.tensor(voxel_size, device=coords.device)
+    coords = torch.floor(coords / voxel_size).int() # torch.int = torch.int32
+
+    hashed_coords = batched_ravel_hash_torch(coords) # B x N
+    hashed_coords = hashed_coords.view(-1, 1)
+    
+    batched_hashed_coords = torch.cat([hashed_coords, batch_index], dim=-1)
+    #print(batched_hashed_coords.shape)
+    
+    _, indices = unique(
+        batched_hashed_coords, dim=0
+    )
+
+    coords = coords.view(-1, C)
+    coords = torch.cat([batch_index, coords], dim=-1)
+    coords = coords[indices]
+
+    outputs = [coords]
+    if return_index:
+        outputs += [indices]
+
+    if return_batch_index:
+        outputs += [batch_index]
+        
+    return outputs[0] if len(outputs) == 1 else outputs
+
+
+class Torch2Torchsparse:
+
+    def __init__(self, pres=1e-5):
+        self.pres = pres
+
+    def __call__(self, pc, f=None):
+        # Point Cloud is of shape B x N x F where the first 3 columns are the coordinates
+        # f contains additional features that may require quantization 
+
+        # Point Coordinates should be Positive
+        coords = pc[..., :3] # In case points have additional features
+        coords = coords - coords.min(dim=0).values
+        coords, indices = batch_sparse_quantize_torch(coords, voxel_size=self.pres, return_index=True, return_batch_index=False)
+        feats = pc.view(-1, 3)[indices]
+
+        if f is not None:
+            if not isinstance(f, (tuple, list)): f = [f]
+            f = [ff.view(-1, 3)[indices] for ff in f]
+            if len(f) == 1: f = f[0]
+        
+        return PointTensor(coords=coords, feats=feats).to(coords.device) if f is None \
+            else (PointTensor(coords=coords, feats=feats).to(coords.device), f)
