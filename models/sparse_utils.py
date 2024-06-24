@@ -237,7 +237,7 @@ def batch_sparse_quantize_torch(
     hashed_coords = batched_ravel_hash_torch(coords) # B x N
     hashed_coords = hashed_coords.view(-1, 1)
     
-    batched_hashed_coords = torch.cat([hashed_coords, batch_index], dim=-1)
+    batched_hashed_coords = torch.cat([batch_index, hashed_coords], dim=-1)
     #print(batched_hashed_coords.shape)
     
     _, indices = unique(
@@ -260,8 +260,9 @@ def batch_sparse_quantize_torch(
 
 class Torch2Torchsparse:
 
-    def __init__(self, pres=1e-5):
+    def __init__(self, pres=1e-5, tensorType=SparseTensor):
         self.pres = pres
+        assert isinstance(tensorType, (SparseTensor, PointTensor))
 
     def __call__(self, pc, f=None):
         # Point Cloud is of shape B x N x F where the first 3 columns are the coordinates
@@ -269,7 +270,7 @@ class Torch2Torchsparse:
 
         # Point Coordinates should be Positive
         coords = pc[..., :3] # In case points have additional features
-        coords = coords - coords.min(dim=0).values
+        coords = coords - coords.min(dim=1, keepdim=True).values
         coords, indices = batch_sparse_quantize_torch(coords, voxel_size=self.pres, return_index=True, return_batch_index=False)
         feats = pc.view(-1, 3)[indices]
 

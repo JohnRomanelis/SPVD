@@ -1,185 +1,172 @@
-import numpy as np
+# imports
 import torch
-from torchsparse import SparseTensor
-from torchsparse.utils.quantize import sparse_quantize
-from torchsparse.utils.collate import sparse_collate_fn
 import math
+from torchsparse.utils.quantize import sparse_quantize
+from torchsparse import SparseTensor
+from torchsparse.utils.collate import sparse_collate_fn
+from models.sparse_utils import batch_sparse_quantize_torch
 
-def sparse_noise_batch(bs, voxel_size=1e-8, n_points=2048):
-    batch = []
-    for i in range(bs):
-        pts = np.random.normal(size=(n_points, 3))
-        coords = pts - np.min(pts, axis=0, keepdims=True)
+class DDPMSchedulerBase:
 
-        coords, indices = sparse_quantize(coords, voxel_size, return_index=True)
+    def __init__(self, beta_min=0.0001, beta_max=0.02, n_steps=1000, mode='linear'):
+
+        self.beta_min, self.beta_max, self.n_steps = beta_min, beta_max, n_steps
+
+        if mode == 'linear':
+            self.beta, self.alpha, self.alpha_hat = self._linear_scheduling()
+        else: 
+            raise NotImplementedError
         
-        coords = torch.tensor(coords, dtype=torch.int)
-        feats = torch.tensor(pts[indices], dtype=torch.float)
+
+    def _linear_scheduling(self):
+
+        beta = torch.linspace(self.beta_min, self.beta_max, self.n_steps)
+        alpha = 1. - beta
+        alpha_hat = torch.cumprod(alpha, dim=0)
         
-        pc_sparse = SparseTensor(coords=coords, feats=feats)
+        return beta, alpha, alpha_hat
+
+    def get_pc(self, x_t, shape):
+        # this functions receives x_t as used by the pipeline returns a cpu tensor
+        return x_t.detach().cpu().reshape(shape)
         
-        batch.append({'pc':pc_sparse})
-        
-    batch = sparse_collate_fn(batch)
-    
-    return batch['pc']
+    @torch.no_grad()
+    def sample(self, model, bs, n_points=2048, nf=3, emb=None, save_process=False):
+        """
+            Args:
+                - model        : neural net for noise prediction
+                - bs           : number of samples to generate
+                - n_points     : number of points per point cloud
+                - nf           : number of features - default 3 for xyz coordinates
+                - emb          : conditional embedding, if None it will be ignored
+                - save_process : save the intermediate point clouds of the generation process
+        """
+        device = next(model.parameters()).device
+        shape = (bs, n_points, nf)
 
-def sparse_from_pts(pts, bs, voxel_size=1e-8):
+        x_t = self.create_noise(shape, device)
+        preds = [self.get_pc(x_t, shape)] 
 
-    pts = pts.reshape(bs, -1, 3)
+        for t in reversed(range(self.n_steps)):
+            x_t = self.sample_step(model, x_t, t, emb, shape, device)
+            if save_process: preds.append(self.get_pc(x_t, shape)) 
 
-    # make coordinates possitive
-    coords = pts - pts.min(dim=1, keepdims=True).values
-    coords = coords.numpy()
-    
-    batch = []
-    for b in range(bs):
+        return preds if save_process else self.get_pc(x_t, shape)
 
-        c, index = sparse_quantize(coords[b], voxel_size, return_index=True)
-        f = pts[b][index]
-        
-        batch.append(
-            {'pc':SparseTensor(coords = torch.tensor(c), feats=f)}
-        )
 
-    batch = sparse_collate_fn(batch)['pc']
-
-    return batch
-
-@torch.no_grad()
-def genSparseDDPM(model, bs, alpha, alphabar, sigma, n_steps=1000, n_points=2048):
-    device = next(model.parameters()).device
-    
-    x_t = sparse_noise_batch(bs, n_points=n_points).to(device)
-
-    for t in reversed(range(n_steps)):
+    def sample_step(self, model, x_t, t, emb, shape, device):
+        """
+            Args:
+                - model  : neural net for noise prediction
+                - x_t    : previous point cloud
+                - t      : current time step
+                - emb    : conditional embedding, if None it will be ignored
+                - shape  : shape of the point cloud
+                - device : device to run the computations
+        """
+        bs = shape[0]
 
         # creating the time embedding variable
         t_batch = torch.full((bs,), t, device=device, dtype=torch.long)
 
-        # create random noise 
-        z = (torch.randn(x_t.F.shape) if t>0 else torch.zeros(x_t.F.shape)).to(device)
-
         # activate the model to predict the noise
-        noise_pred = model((x_t, t_batch))
-
+        noise_pred = model((x_t, t_batch)) if emb is None else model((x_t, t_batch, emb))
+        
         # calculate the new point coordinates
-        pts = x_t.F # previous point coordinates in the continuous space
-
-        a_t, abar_t, s_t = alpha[t], alphabar[t], sigma[t]
+        x_t = self.update_rule(x_t, noise_pred, t, shape, device)
         
-        new_pts = 1 / math.sqrt(a_t) * (pts - (1 - a_t) / (math.sqrt(1 - abar_t)) * noise_pred) + s_t * z
+        return x_t
 
-        # create a sparse tensor for the next step
-        new_pts = new_pts.detach().cpu().reshape(bs, -1, 3)
-        
-        x_t = sparse_from_pts(new_pts, bs).to(device)
-        
-    return new_pts.to(device)
+    def create_noise(self, shape, device):
+        return torch.randn(shape).to(device)
 
+    def predict_x0_from_noise(self, x_t, noise_pred, t, shape, device):
+        # x_t.shape : B x N x F
+        # noise_pred.shape : B x N x F
+        raise NotImplementedError
 
-@torch.no_grad()
-def denoiseSparseDDPM(model, x0, start_step, alpha, alphabar, sigma, n_steps=1000, n_points=2048):
-    device = next(model.parameters()).device
-    
-    x_t = x0.to(device)
+    def update_rule(self, x_t, noise_pred, t, shape, device):
+        # x_t.shape : B x N x F
+        # noise_pred.shape : B x N x F
+        raise NotImplementedError
 
-    bs = x_t.C[:,0].max() + 1
-
-    for t in reversed(range(start_step, n_steps)):
-
-        # creating the time embedding variable
-        t_batch = torch.full((bs,), t, device=device, dtype=torch.long)
-
-        # create random noise 
-        z = (torch.randn(x_t.F.shape) if t>0 else torch.zeros(x_t.F.shape)).to(device)
-
-        # activate the model to predict the noise
-        noise_pred = model((x_t, t_batch))
-
-        # calculate the new point coordinates
-        pts = x_t.F # previous point coordinates in the continuous space
-
-        a_t, abar_t, s_t = alpha[t], alphabar[t], sigma[t]
-        
-        new_pts = 1 / math.sqrt(a_t) * (pts - (1 - a_t) / (math.sqrt(1 - abar_t)) * noise_pred) + s_t * z
-
-        # create a sparse tensor for the next step
-        new_pts = new_pts.detach().cpu().reshape(bs, -1, 3)
-        
-        x_t = sparse_from_pts(new_pts, bs).to(device)
-        
-    return new_pts.to(device)
-
-class DDPMScheduler:
-
-    def __init__(self, beta_min, beta_max, n_steps):
-        self.n_steps, self.beta_min, self.beta_max = n_steps, beta_min, beta_max
-        
-        self.beta = torch.linspace(self.beta_min, self.beta_max, self.n_steps)
-        self.α = 1. - self.beta 
-        self.ᾱ = torch.cumprod(self.α, dim=0)
-        self.σ = self.beta.sqrt()
-        
-        self.beta = self.beta.numpy()
-        self.α = self.α.numpy()
-        self.ᾱ = self.ᾱ.numpy() 
-        self.σ = self.σ.numpy()
-
-    def sample(self, model, bs, n_points=2048):
-        return genSparseDDPM(model, bs, self.α, self.ᾱ, self.σ, self.n_steps, n_points=n_points)
-    
-    def denoise_sample(self, model, x0, step):
-        return denoiseSparseDDPM(model, x0, step, self.α, self.ᾱ, self.σ, self.n_steps)
-    
     def noisify_sample(self, x0, step):
+        raise NotImplementedError
 
-        noise = torch.randn(x0.shape)
-        abar_t = self.ᾱ[step]
-        xt = np.sqrt(abar_t)*x0 + np.sqrt(1-abar_t)*noise
+class DDPMSparseScheduler(DDPMSchedulerBase):
 
-        return xt
+    def __init__(self, beta_min=0.0001, beta_max=0.02, n_steps=1000, pres=1e-5, mode='linear', sigma='bt'):
+        super().__init__(beta_min, beta_max, n_steps, mode)
+        self.pres = pres
 
-@torch.no_grad()
-def genSparseDDIM(model, bs, step_inds, alphabar, n_points=2048):
-    device = next(model.parameters()).device
-    
-    s_steps = len(step_inds)
-    x_t = sparse_noise_batch(bs, n_points=n_points).to(device)
+        assert sigma in ['bt', 'coef_bt'], sigma
+        if sigma == 'bt':
+            self.sigma = self.beta.sqrt()
+        else:
+            alpha_hat_prev1 = torch.ones_like(self.alpha_hat)
+            alpha_hat_prev1[1:] = self.alpha_hat[:-1]
+            self.sigma = torch.sqrt(self.beta * (1 - alpha_hat_prev1) / (1 - self.alpha_hat))
+        
+    def torch2sparse(self, pts:torch.Tensor, shape):
+        # Receive a torch.Tensor of shape BxNxF and returns a SparseTensor representation
+        pts = pts.cpu().reshape(shape) # make sure points have the correct shape
+        
+        # make coordinates positive
+        coords = pts[:, :, :3]
+        coords = coords - coords.min(dim=1, keepdim=True)[0]
+        coords = coords.numpy()
 
-    for i in reversed(range(1, s_steps)):
+        # Unfortunately we need to loop over the batch to apply sparse_quantize 
+        # Also DATA have to be in CPU and coords represented as np.arrays
+        batch = []
+        for b in range(shape[0]):
 
-        t = step_inds[i]
-        # creating the time embedding variable
-        t_batch = torch.full((bs,), t, device=device, dtype=torch.long)
+            c, indices = sparse_quantize(coords[b], self.pres, return_index=True)
+            f = pts[b][indices]
 
-        # predict the noise
-        noise_pred = model((x_t, t_batch))
+            batch.append(
+                {'pc':SparseTensor(coords = torch.tensor(c), feats=f)}
+            )
+        
+        batch = sparse_collate_fn(batch)['pc']
 
-        # calculation of new point coordinates
-        pts = x_t.F
-        abar_t, abar_t1 = alphabar[i], alphabar[i-1]
-        new_pts = math.sqrt(abar_t1) * ((pts - math.sqrt(1 - abar_t) * noise_pred) / math.sqrt(abar_t)) + (math.sqrt(1 - abar_t1) * noise_pred)
+        return batch
 
-        # create a sparse tensor for the next step
-        new_pts = new_pts.detach().cpu().reshape(bs, -1, 3)
+    def create_noise(self, shape, device):
+        noise = torch.randn(shape)
+        noise = self.torch2sparse(noise, shape).to(device)
+        return noise
 
-        x_t = sparse_from_pts(new_pts, bs).to(device)
+    def update_rule(self, x_t, noise_pred, t, shape, device):
 
-    return new_pts.to(device)
+        # outside the update_rule the point cloud is represented as SparseTensor
+        x_t = x_t.F
 
-class DDIMScheduler(DDPMScheduler):
+        # create normal noise with the same shape as x_t
+        z = torch.randn(x_t.shape).to(device)
+        
+        # get parameters for the current timestep
+        a_t, ahat_t, s_t = self.alpha[t], self.alpha_hat[t], self.sigma[t]
+        
+        x_t = 1 / math.sqrt(a_t) * (x_t - (1 - a_t) / (math.sqrt(1 - ahat_t)) * noise_pred) + s_t * z
 
-    def __init__(self, beta_min, beta_max, n_steps, s_steps):
-        super().__init__(beta_min, beta_max, n_steps)
-        assert s_steps < n_steps
-        self.set_sampling_steps(s_steps)
+        # so we should turn it back to a sparse tensor before return
+        return self.torch2sparse(x_t, shape).to(device)
 
-    def set_sampling_steps(self, s_steps):
-        self.s_steps = s_steps
-        self.selected_inds = torch.floor(torch.linspace(0, 999, s_steps)).long()
-        self.selected_alphabar = self.ᾱ[self.selected_inds]
+    def get_pc(self, x_t, shape):
+        # this functions receives x_t as used by the pipeline returns a cpu tensor
+        return x_t.F.detach().cpu().reshape(shape)
 
-    def sample(self, model, bs, n_points=2048):
-        return genSparseDDIM(model, bs, self.selected_inds, self.selected_alphabar, n_points)
-    
+
+class DDPMSparseSchedulerGPU(DDPMSparseScheduler):
+
+    def torch2sparse(self, pts:torch.Tensor, shape):
+        pts = pts.reshape(shape)
+        
+        coords = pts[..., :3] # In case points have additional features
+        coords = coords - coords.min(dim=1, keepdim=True).values
+        coords, indices = batch_sparse_quantize_torch(coords, voxel_size=self.pres, return_index=True, return_batch_index=False)
+        feats = pts.view(-1, 3)[indices]
+
+        return SparseTensor(coords=coords, feats=feats).to(coords.device)
+
