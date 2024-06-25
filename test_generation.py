@@ -40,7 +40,7 @@ def get_test_loader(path, cates = ['chair']):
     return test_loader
 
 
-def evaluate_gen(path, model, sampler, save_path='./results/'):
+def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair']):
 
     # try to load generated files
     try:
@@ -50,7 +50,7 @@ def evaluate_gen(path, model, sampler, save_path='./results/'):
     except:
         print('Generating new data...')
 
-        loader = get_test_loader(path)
+        loader = get_test_loader(path, cates)
 
         all_sample = []
         all_ref = []
@@ -85,10 +85,6 @@ def evaluate_gen(path, model, sampler, save_path='./results/'):
         np.save(os.path.join(save_path, 'generated_pcs.npy'), sample_pcs.cpu().numpy())
         np.save(os.path.join(save_path, 'reference_pcs.npy'), ref_pcs.cpu().numpy())
 
-    # print(sample_pcs.mean(), sample_pcs.std())
-    # print(ref_pcs.mean(), ref_pcs.std())
-    # print(sample_pcs.shape, ref_pcs.shape)
-
     # -------------------------------------------------------------------------------------
     # # per sample centering
     # sample_pcs = sample_pcs - sample_pcs.mean(dim=1, keepdim=True)
@@ -98,7 +94,6 @@ def evaluate_gen(path, model, sampler, save_path='./results/'):
     # sample_pcs = sample_pcs / dist.unsqueeze(-1)
     # dist = (ref_pcs * ref_pcs).sum(dim=-1, keepdim=True).sqrt().max(dim=1).values
     # ref_pcs = ref_pcs / dist.unsqueeze(-1)
-    
     # -------------------------------------------------------------------------------------
 
     print((sample_pcs * sample_pcs).sum(dim=-1, keepdim=True).sqrt().max(), (ref_pcs * ref_pcs).sum(dim=-1, keepdim=True).sqrt().max())
@@ -113,8 +108,8 @@ def evaluate_gen(path, model, sampler, save_path='./results/'):
     jsd = JSD(sample_pcs.numpy(), ref_pcs.numpy())
     pprint('JSD: {}'.format(jsd))
 
-if __name__ == "__main__":
 
+def main():
     #path = "/home/tourloid/Desktop/PhD/Data/ShapeNetCore.v2.PC15k"
     path = "/home/vvrbeast/Desktop/Giannis/Data/ShapeNetCore.v2.PC15k"
 
@@ -123,7 +118,7 @@ if __name__ == "__main__":
 
     model = SPVUnet(voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, pres=1e-5)
 
-    checkpoint_path = './checkpoints/spvcnn_0.1_32_64_128_256_constant_lr_2100.pt'
+    checkpoint_path = './checkpoints/spvcnn_0.1_32_64_128_256_constant_lr_1900.pt'
 
     checkpoint = torch.load(checkpoint_path)['state_dict']
     model.load_state_dict(checkpoint)
@@ -132,3 +127,8 @@ if __name__ == "__main__":
     ddpm_sched = DDPMSparseSchedulerGPU(n_steps=1000, beta_min=0.0001, beta_max=0.02)
 
     evaluate_gen(path, model, ddpm_sched, save_path='./results/')
+
+
+if __name__ == "__main__":
+    main()
+
