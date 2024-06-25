@@ -115,15 +115,15 @@ def evaluate_gen(path, model, sampler, save_path='./results/'):
 
 if __name__ == "__main__":
 
-    path = "/home/tourloid/Desktop/PhD/Data/ShapeNetCore.v2.PC15k"
-    #path = "/home/vvrbeast/Desktop/Giannis/Data/ShapeNetCore.v2.PC15k"
+    #path = "/home/tourloid/Desktop/PhD/Data/ShapeNetCore.v2.PC15k"
+    path = "/home/vvrbeast/Desktop/Giannis/Data/ShapeNetCore.v2.PC15k"
 
     from models.ddpm_unet import SPVUnet
-    from utils.schedulers import DDPMSparseScheduler, DDPMSparseSchedulerGPU
+    from utils.schedulers import DDPMSparseSchedulerGPU
 
     model = SPVUnet(voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, pres=1e-5)
 
-    checkpoint_path = './checkpoints/spvcnn_0.1_32_64_128_256_constant_lr_1900.pt'
+    checkpoint_path = './checkpoints/spvcnn_0.1_32_64_128_256_constant_lr_2100.pt'
 
     checkpoint = torch.load(checkpoint_path)['state_dict']
     model.load_state_dict(checkpoint)
