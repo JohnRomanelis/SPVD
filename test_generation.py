@@ -114,7 +114,7 @@ def main():
     path = "/home/vvrbeast/Desktop/Giannis/Data/ShapeNetCore.v2.PC15k"
 
     from models.ddpm_unet import SPVUnet
-    from utils.schedulers import DDPMSparseSchedulerGPU
+    from utils.schedulers import DDPMSparseSchedulerGPU, DDIMSparseSchedulerGPU
 
     model = SPVUnet(voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, pres=1e-5)
 
@@ -124,7 +124,7 @@ def main():
     model.load_state_dict(checkpoint)
     model.cuda().eval()
     
-    ddpm_sched = DDPMSparseSchedulerGPU(n_steps=1000, beta_min=0.0001, beta_max=0.02)
+    ddpm_sched = DDIMSparseSchedulerGPU(n_steps=1000, beta_min=0.0001, beta_max=0.02)
 
     evaluate_gen(path, model, ddpm_sched, save_path='./results/')
 
