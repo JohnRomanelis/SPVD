@@ -66,7 +66,8 @@ class DDPM(DDPMBase):
     def update_rule(self, x_t, noise_pred, t, i, shape, device):
 
         # create normal noise with the same shape as x_t
-        z = torch.randn(x_t.shape).to(device)
+        z = torch.randn(x_t.shape).to(device) if t > 0 else torch.zeros(x_t.shape).to(device) 
+                                                       # do not add noise on the last step
         
         # get parameters for the current timestep
         a_t, ahat_t, s_t = self.alpha[t], self.alpha_hat[t], self.sigma[t]
@@ -181,6 +182,7 @@ class SparseScheduler(SchedulerBase):
     
     def create_noise(self, shape, device):
         noise = torch.randn(shape)
+        noise = torch.clamp(noise, min=-3, max=3) # clamping the noise in [-3, 3] cube to reduce outlier points
         noise = self.torch2sparse(noise, shape).to(device)
         return noise
 
