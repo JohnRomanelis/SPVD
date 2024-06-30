@@ -40,14 +40,14 @@ def get_test_loader(path, cates = ['chair']):
     return test_loader
 
 
-def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair']):
+def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair'], load_samples=False):
 
     # try to load generated files
-    try:
+    if load_samples:
         sample_pcs = torch.tensor(np.load(os.path.join(save_path, 'generated_pcs.npy')))
         ref_pcs = torch.tensor(np.load(os.path.join(save_path, 'reference_pcs.npy')))
     
-    except:
+    else:
         print('Generating new data...')
 
         loader = get_test_loader(path, cates)
@@ -105,7 +105,7 @@ def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair']
                    if not isinstance(v, float) else v) for k, v in results.items()}
     pprint(results)
 
-    jsd = JSD(sample_pcs.numpy(), ref_pcs.numpy())
+    jsd = JSD(sample_pcs.cpu().numpy(), ref_pcs.cpu().numpy())
     pprint('JSD: {}'.format(jsd))
 
 
@@ -113,18 +113,18 @@ def main():
     #path = "/home/tourloid/Desktop/PhD/Data/ShapeNetCore.v2.PC15k"
     path = "/home/vvrbeast/Desktop/Giannis/Data/ShapeNetCore.v2.PC15k"
 
-    from models.ddpm_unet import SPVUnet
+    from models.ddpm_unet_attn import SPVUnet
     from utils.schedulers import DDPMSparseSchedulerGPU, DDIMSparseSchedulerGPU
 
-    model = SPVUnet(voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, pres=1e-5)
-
-    checkpoint_path = './checkpoints/spvcnn_0.1_32_64_128_256_constant_lr_1900.pt'
+    #model = SPVUnet(voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, pres=1e-5)
+    model = SPVUnet(voxel_size=0.1, nfs = (64, 128, 128, 256), pres=1e-5, attn_chans=16, attn_start=3)
+    checkpoint_path = './checkpoints/ddpm_unet_attn_64_128_256_256_2700.pt'
 
     checkpoint = torch.load(checkpoint_path)['state_dict']
     model.load_state_dict(checkpoint)
     model.cuda().eval()
     
-    ddpm_sched = DDIMSparseSchedulerGPU(n_steps=1000, beta_min=0.0001, beta_max=0.02)
+    ddpm_sched = DDPMSparseSchedulerGPU(n_steps=1000, beta_min=0.0001, beta_max=0.02)
 
     evaluate_gen(path, model, ddpm_sched, save_path='./results/')
 
