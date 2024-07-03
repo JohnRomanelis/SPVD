@@ -122,7 +122,7 @@ class SchedulerBase:
         shape = (bs, n_points, nf)
 
         x_t = self.create_noise(shape, device)
-        preds = [self.get_pc(x_t, shape)] 
+        if save_process: preds = [self.get_pc(x_t, shape)] 
 
         for i, t in enumerate(self.strategy.steps):
             x_t = self.sample_step(model, x_t, t, i, emb, shape, device)
@@ -182,7 +182,7 @@ class SparseScheduler(SchedulerBase):
     
     def create_noise(self, shape, device):
         noise = torch.randn(shape)
-        noise = torch.clamp(noise, min=-3, max=3) # clamping the noise in [-3, 3] cube to reduce outlier points
+        #noise = torch.clamp(noise, min=-3, max=3) # clamping the noise in [-3, 3] cube to reduce outlier points
         noise = self.torch2sparse(noise, shape).to(device)
         return noise
 
