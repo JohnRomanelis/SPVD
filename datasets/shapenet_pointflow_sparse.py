@@ -14,8 +14,8 @@ class ShapeNet15kPointCloudsSparseNoisy(ShapeNet15kPointClouds):
     def set_voxel_size(self, voxel_size=1e-8):
         self.voxel_size = voxel_size
         
-    def set_noise_params(self, beta_min=0.0001, beta_max=0.02, n_steps=1000):
-        self.noise_scheduler = NoiseSchedulerDDPM(beta_min, beta_max, n_steps)
+    def set_noise_params(self, beta_min=0.0001, beta_max=0.02, n_steps=1000, mode='linear'):
+        self.noise_scheduler = NoiseSchedulerDDPM(beta_min, beta_max, n_steps, mode)
         
     def __getitem__(self, idx):
         res = super().__getitem__(idx)
