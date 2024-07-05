@@ -17,6 +17,18 @@ Sparse-Point Voxel Diffusion
     `pip install -e .`
 
 
+- ## Install Chamfer Distance and Earth Mover Distance
+
+- ### Chamfer 
+1. cd to metrics/chamfer_dist 
+2. Run `python setup.py install --user`
+
+- ### EMD
+1. cd to metrics/PyTorchEMD
+2. Run `python setup.py install`
+3. Run `cp ./build/lib.linux-x86_64-cpython-310/emd_cuda.cpython-310-x86_64-linux-gnu.so .`
+
+
 # Experiments
 ## Train Generation
 
