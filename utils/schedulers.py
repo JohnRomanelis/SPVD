@@ -18,29 +18,41 @@ class SchedulingStrategy:
     def steps(self):
         pass 
 
+def linear_scheduling(schedS):
+    inds = torch.arange(schedS.n_steps)
+    beta = torch.linspace(schedS.beta_min, schedS.beta_max, schedS.n_steps)
+    alpha = 1. - beta
+    alpha_hat = torch.cumprod(alpha, dim=0)
+    
+    return inds, beta, alpha, alpha_hat
+
+def warm01_scheduling(scedS):
+    inds = torch.arange(scedS.n_steps)
+    beta = scedS.beta_max * torch.ones(scedS.n_steps, dtype=torch.float)
+    warmup_time = int(0.1 * scedS.n_steps)
+    beta[:warmup_time] = torch.linspace(scedS.beta_min, scedS.beta_max, warmup_time, dtype=torch.float)
+    alpha = 1. - beta
+    alpha_hat = torch.cumprod(alpha, dim=0)
+
+    return inds, beta, alpha, alpha_hat
+
 class DDPMBase(SchedulingStrategy):
     '''
     This is a Base method for all conventional schedulers like DDPM and DDIM that interpolate between a beta_min and beta_max value
     '''
+
+    schedul = {
+        'linear' : linear_scheduling, 
+        'warm0.1' : warm01_scheduling
+    }
     
     def __init__(self, beta_min=0.0001, beta_max=0.02, n_steps=1000, mode='linear'):
         self.beta_min, self.beta_max, self.n_steps = beta_min, beta_max, n_steps
 
-        if mode == 'linear':
-            self.inds, self.beta, self.alpha, self.alpha_hat = self._linear_scheduling()
-            self.inds = reversed(self.inds)
-        else: 
-            raise NotImplementedError
-
-    def _linear_scheduling(self):
-
-        inds = torch.arange(self.n_steps)
-        beta = torch.linspace(self.beta_min, self.beta_max, self.n_steps)
-        alpha = 1. - beta
-        alpha_hat = torch.cumprod(alpha, dim=0)
-        
-        return inds, beta, alpha, alpha_hat
-    
+        assert mode in self.schedul.keys(), 'f{mode} is not Imlemented'
+        self.inds, self.beta, self.alpha, self.alpha_hat = self.schedul[mode](self)
+        self.inds = reversed(self.inds)
+            
     @property
     def steps(self):
         return self.inds
