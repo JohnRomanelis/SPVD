@@ -13,3 +13,9 @@ It also includes the necessary code for training, inference, and testing of the 
 
 - ## SuperResolution
 This notebook contains all the code to train and inference the Super Resolution point cloud model.
+
+
+- ## PartNetDataset
+Contains all the code to generate the **PartNet** dataset used in the paper from the original PartNet data. 
+
+

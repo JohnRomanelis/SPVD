@@ -137,9 +137,9 @@ class SPVUnet(nn.Module):
         self.conv_out = nn.Sequential(
             nn.BatchNorm1d(nfs[0]),
             nn.SiLU(), 
-            nn.Linear(nfs[0], nfs[0], bias=False), # extra
-            nn.BatchNorm1d(nfs[0]),                # extra
-            nn.SiLU(),                             # extra
+            #nn.Linear(nfs[0], nfs[0], bias=False), # extra
+            #nn.BatchNorm1d(nfs[0]),                # extra
+            #nn.SiLU(),                             # extra
             nn.Linear(nfs[0], 3, bias=False),
         )
         

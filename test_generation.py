@@ -40,7 +40,7 @@ def get_test_loader(path, cates = ['chair']):
     return test_loader
 
 
-def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair'], load_samples=False):
+def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair'], emb=None, load_samples=False):
 
     # try to load generated files
     if load_samples:
@@ -62,7 +62,7 @@ def evaluate_gen(path, model, sampler, save_path='./results/', cates = ['chair']
             # number of samples, number of points
             B, N = te_pc.shape[0], te_pc.shape[1]
             
-            out_pc = sampler.sample(model, B, n_points=N) #sampler.sample(model, (B, N, 3))[-1] #model.sample(B, N)
+            out_pc = sampler.sample(model, B, n_points=N, emb=emb) #sampler.sample(model, (B, N, 3))[-1] #model.sample(B, N)
             out_pc = out_pc.cuda()
             
 
