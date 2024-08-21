@@ -1,6 +1,7 @@
 # SPVD
 Sparse-Point Voxel Diffusion
 
+Installation instructions and documention coming soon! 
 
 
 # Installation
