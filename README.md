@@ -1,4 +1,4 @@
-# SPVD
+# SPVD [arXiv](https://arxiv.org/abs/2408.06145)
 Sparse-Point Voxel Diffusion
 
 Installation instructions and documention coming soon! 
