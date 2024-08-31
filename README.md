@@ -57,25 +57,40 @@ pip install -e .
 ### 5. Installing TorchSparse
 1. TorchSparse depends on the [Google Sparse Hash](https://github.com/sparsehash/sparsehash.git) librabry.\
    To install on ubuntu run:
-   `sudo apt-get install libsparsehash-dev`
+   ```
+   sudo apt-get install libsparsehash-dev
+   ```
 
 2. Clone the torchsparse repo:\
-   `https://github.com/mit-han-lab/torchsparse.git`
+   ```
+   https://github.com/mit-han-lab/torchsparse.git
+   ```
 
 3. CD inside the torchsparse directory and run:\
-    `pip install -e .`
+   ```
+   pip install -e .
+   ```
 
 
 ### 6. Install Chamfer Distance and Earth Mover Distance
 
 - **Chamfer** 
 1. cd to metrics/chamfer_dist 
-2. Run `python setup.py install --user`
+2. Run: 
+```
+python setup.py install --user
+```
 
 - **EMD**
 1. cd to metrics/PyTorchEMD
-2. Run `python setup.py install`
-3. Run `cp ./build/lib.linux-x86_64-cpython-310/emd_cuda.cpython-310-x86_64-linux-gnu.so .`
+2. Run: 
+```
+python setup.py install
+```
+3. Run:
+```
+cp ./build/lib.linux-x86_64-cpython-310/emd_cuda.cpython-310-x86_64-linux-gnu.so .
+```
 
 
 # Experiments
