@@ -98,7 +98,7 @@ python setup.py install
 ```
 cp ./build/lib.linux-x86_64-cpython-310/emd_cuda.cpython-310-x86_64-linux-gnu.so .
 ```
-
+If an error is raised in this last command, list all directories inside build and replace the name of the derictory with the one in your pc named *lib.linux-x86_64-cpython-\**
 
 # Experiments
 You can replicate all the experiments from our paper using the notebooks provided in the `experiments` folder. Below is a catalog of the experiments featured in our paper, along with brief descriptions.
