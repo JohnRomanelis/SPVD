@@ -52,37 +52,44 @@ cd pclab
 pip install -e .
 ```
 
-
-
 ### 5. Installing TorchSparse
-1. TorchSparse depends on the [Google Sparse Hash](https://github.com/sparsehash/sparsehash.git) librabry.\
+1. TorchSparse depends on the [Google Sparse Hash](https://github.com/sparsehash/sparsehash.git) librabry.
    To install on ubuntu run:
-   ```
-   sudo apt-get install libsparsehash-dev
-   ```
+```
+sudo apt-get install libsparsehash-dev
+```
 
-2. Clone the torchsparse repo:\
-   ```
-   https://github.com/mit-han-lab/torchsparse.git
-   ```
-
-3. CD inside the torchsparse directory and run:\
-   ```
-   pip install -e .
-   ```
+2. Clone the torchsparse repo:
+```
+git clone https://github.com/mit-han-lab/torchsparse.git
+```
+3. Navigate into the *torchsparse* directory:
+```
+cd torchsparse
+```
+4. Install *torchsparse*:
+```
+pip install -e .
+```
 
 
 ### 6. Install Chamfer Distance and Earth Mover Distance
 
 - **Chamfer** 
-1. cd to metrics/chamfer_dist 
+1. Navigate to the SPVD/metrics/chamfer_dist directory:
+```
+cd SPVD/metrics/chamfer_dist
+``` 
 2. Run: 
 ```
 python setup.py install --user
 ```
 
 - **EMD**
-1. cd to metrics/PyTorchEMD
+1. Navigate to the SPVD/metrics/PyTorchEMD directory: 
+```
+cd SPVD/metrics/PyTorchEMD
+```
 2. Run: 
 ```
 python setup.py install
@@ -94,8 +101,14 @@ cp ./build/lib.linux-x86_64-cpython-310/emd_cuda.cpython-310-x86_64-linux-gnu.so
 
 
 # Experiments
-## Train Generation
+You can replicate all the experiments from our paper using the notebooks provided in the `experiments` folder. Below is a catalog of the experiments featured in our paper, along with brief descriptions.
 
-## Train Part Completion
+- [TrainGeneration](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/TrainGeneration.ipynb): Train a generative model for unconditional point cloud generation in a single class of ShapeNet.
 
-## Train Super Resolution
+- [ConditionalGeneration](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/ConditionalGeneration.ipynb): Train a conditional model on all categories of ShapeNet.
+
+- [TrainCompletion](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/TrainCompletion.ipynb): Train a model for part completion on PartNet.
+
+- [SuperResolution](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/SuperResolution.ipynb): Train a model for super resolution on Point Clouds. 
+
+ A more comprehensive list, including additional comments and experiments, is available [here](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/README.md).
