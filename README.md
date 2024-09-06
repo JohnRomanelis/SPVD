@@ -1,6 +1,8 @@
 # Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models [[arXiv]](https://arxiv.org/abs/2408.06145)
 
 
+[Project Page](https://johnromanelis.github.io/_spvd/) | [Video](https://drive.google.com/file/d/1b0bl-b_gRVOqTBZDH0z_4uPKCQFIS5ko/view?usp=sharing)
+
 <p align="center">
   <img src="assets/SPVD.gif" width="80%"/>
 </p>
@@ -8,7 +10,6 @@
 
 This repository contains the official implementation for our publication: *"Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models."*
 
-Installation instructions and documention coming soon! 
 
 # News:
 
