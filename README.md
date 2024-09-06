@@ -1,8 +1,9 @@
 # Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models [[arXiv]](https://arxiv.org/abs/2408.06145)
 
 
-
-<img src="assets/SPVD.gif" style="max-width: 100%; height: auto;">
+<p align="center">
+  <img src="assets/SPVD.gif" width="80%"/>
+</p>
 
 
 This repository contains the official implementation for our publication: *"Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models."*
