@@ -116,3 +116,20 @@ You can replicate all the experiments from our paper using the notebooks provide
 
 ### Note:
 All the `#export` commands are used with the `utils/notebook2py.py' script, to export parts of the notebooks to *.py* scripts.
+
+
+# Citation
+
+If you find this work useful in your research, please consider citing:
+
+```bibtex
+@misc{romanelis2024efficientscalablepointcloud,
+      title={Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models}, 
+      author={Ioannis Romanelis and Vlassios Fotis and Athanasios Kalogeras and Christos Alexakos and Konstantinos Moustakas and Adrian Munteanu},
+      year={2024},
+      eprint={2408.06145},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2408.06145}, 
+}
+````
