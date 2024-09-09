@@ -124,6 +124,11 @@ You can replicate all the experiments from our paper using the notebooks provide
 ### Note:
 All the `#export` commands are used with the `utils/notebook2py.py' script, to export parts of the notebooks to *.py* scripts.
 
+# Data
+
+For generation, we use the same version of ShapeNet as [PointFlow](https://github.com/stevenygd/PointFlow.git). Please refer to their instructions for downloading the dataset.
+
+For completion we use PartNet. Download the data from the official [PartNet website](https://www.shapenet.org/). To process the data check the [PartNetDataset](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/PartNetDataset.ipynb) notebook.
 
 # Citation
 
