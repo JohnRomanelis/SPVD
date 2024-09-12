@@ -1,7 +1,7 @@
 # Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models
 
 
-[Paper](https://arxiv.org/abs/2408.06145) | [Project Page](https://johnromanelis.github.io/_spvd/) | [Video](https://youtu.be/Ca51lMpHHms)
+[Paper](https://arxiv.org/abs/2408.06145) | [Project Page](https://johnromanelis.github.io/_spvd/) | [Video](https://youtu.be/Ca51lMpHHms) | [Lightning Version](https://github.com/JohnRomanelis/SPVD_Lightning.git)
 
 <p align="center">
   <img src="assets/SPVD.gif" width="80%"/>
@@ -14,6 +14,7 @@ This repository contains the official implementation for our publication: *"Effi
 # News:
 
 - **12/8/2024**: Arxiv submission of the SPVD preprint.
+- **12/9/2024**: Release of [SPVD Lightning](https://github.com/JohnRomanelis/SPVD_Lightning.git). We replace the pclab custom library with Pytorch Lightning ⚡
 
 # Installation
 
