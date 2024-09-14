@@ -33,12 +33,18 @@ conda activate spvd
 git clone https://github.com/JohnRomanelis/SPVD.git
 ```
 
-### 3. Install PyTorch
+### 3. Install PyTorch and other Python libraries
 
 We have tested our code with PyTorch 2.0 and CUDA 11.8. You can install the compatible version using the following command:
 
 ```
 conda install pytorch==2.0.0 torchvision==0.15.0 torchaudio==2.0.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+```
+
+You can also install most of the required libraries through the `requirements.txt` by running:
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### 4. Install pclab
@@ -145,3 +151,4 @@ If you find this work useful in your research, please consider citing:
       primaryClass={cs.CV},
       url={https://arxiv.org/abs/2408.06145}, 
 }
+```

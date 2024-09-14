@@ -1,0 +1,6 @@
+torch_geometric==2.5.2
+torch-scatter==2.1.2
+jupyterlab
+fastcore==1.5.43
+timm==1.0.3
+open3d==0.18.0
