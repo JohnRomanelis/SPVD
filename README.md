@@ -15,7 +15,8 @@ This repository contains the official implementation for our publication: *"Effi
 
 - **12/8/2024**: Arxiv submission of the SPVD preprint.
 - **12/9/2024**: Release of [SPVD Lightning](https://github.com/JohnRomanelis/SPVD_Lightning.git). We replace the pclab custom library with Pytorch Lightning ⚡
-
+- **29/11/2024**: Release of pretrained checkpoint for point cloud completion for the SPVD smallest variant. Check the *Checkpoints* section below.
+  
 # Installation
 
 ### 1. Set Up an Anaconda Environment
@@ -136,6 +137,18 @@ All the `#export` commands are used with the `utils/notebook2py.py' script, to e
 For generation, we use the same version of ShapeNet as [PointFlow](https://github.com/stevenygd/PointFlow.git). Please refer to their instructions for downloading the dataset.
 
 For completion we use PartNet. Download the data from the official [PartNet website](https://www.shapenet.org/). To process the data check the [PartNetDataset](https://github.com/JohnRomanelis/SPVD/blob/main/experiments/PartNetDataset.ipynb) notebook.
+
+# Checkpoints
+
+Please find the checkpoints for point cloud completion at this [link](https://drive.google.com/drive/folders/1pLkapwySaJrv1eJmOCt62eRrgTY-DCo2?usp=sharing).
+
+*Note*: These checkpoints are not the exact versions used in the paper. Instead, they are newly trained checkpoints of the SPVD smallest variant, validated to produce visually comparable results. To create the get_model partial for model instantiation, use the following code: 
+```python
+from functools import partial
+from models.ddpm_unet_attn import SPVUnet
+get_model = partial(SPVUnet, in_channels=4, voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, attn_chans=8, attn_start=3)
+```
+
 
 # Citation
 
