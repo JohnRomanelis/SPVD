@@ -16,7 +16,8 @@ This repository contains the official implementation for our publication: *"Effi
 - **12/8/2024**: Arxiv submission of the SPVD preprint.
 - **12/9/2024**: Release of [SPVD Lightning](https://github.com/JohnRomanelis/SPVD_Lightning.git). We replace the pclab custom library with Pytorch Lightning ⚡
 - **29/11/2024**: Release of pretrained checkpoint for point cloud completion for the SPVD smallest variant. Check the *Checkpoints* section below.
-  
+- **04/12/2024**: Release of [Gradio](https://www.gradio.app/) app 🚀 for the *Completion* and *Super-Resolution* tasks. Check the *Gradio app* section below for more information. We have also released the checkpoints for point cloud super resolution of the SPVD smallest variant.
+
 # Installation
 
 ### 1. Set Up an Anaconda Environment
@@ -140,7 +141,10 @@ For completion we use PartNet. Download the data from the official [PartNet webs
 
 # Checkpoints
 
-Please find the checkpoints for point cloud completion at this [link](https://drive.google.com/drive/folders/1pLkapwySaJrv1eJmOCt62eRrgTY-DCo2?usp=sharing).
+Please find the checkpoints for point cloud **completion** and **super resolution** at this [link](https://drive.google.com/drive/folders/1pLkapwySaJrv1eJmOCt62eRrgTY-DCo2?usp=sharing).
+
+You are welcome to use these checkpoints in your research; simply cite them as **SPVD-S** 😊.
+
 
 *Note*: These checkpoints are not the exact versions used in the paper. Instead, they are newly trained checkpoints of the SPVD smallest variant, validated to produce visually comparable results. To create the get_model partial for model instantiation, use the following code: 
 ```python
@@ -148,6 +152,23 @@ from functools import partial
 from models.ddpm_unet_attn import SPVUnet
 get_model = partial(SPVUnet, in_channels=4, voxel_size=0.1, nfs=(32, 64, 128, 256), num_layers=1, attn_chans=8, attn_start=3)
 ```
+
+
+# Gradio app
+
+The Gradio app is designed to make it easy for users to experiment with the results of our publication without needing to delve into the complexities of our code. Simply follow the installation instructions to set up the environment, download the [checkpoints](https://drive.google.com/drive/folders/1pLkapwySaJrv1eJmOCt62eRrgTY-DCo2?usp=sharing) and place them in the **checkpoints** folder, and, then run:
+
+```
+python app.py
+```
+
+and access the local URL displayed in your terminal.
+
+For more detailed instructions on using the app, along with helpful notes, we highly recommend exploring the instructions provided within the app itself. 😊
+
+Below is an image showcasing the app interface:
+
+![Alt Text](assets/gradio_app.png)
 
 
 # Citation
