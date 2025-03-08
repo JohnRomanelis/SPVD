@@ -17,6 +17,7 @@ This repository contains the official implementation for our publication: *"Effi
 - **12/9/2024**: Release of [SPVD Lightning](https://github.com/JohnRomanelis/SPVD_Lightning.git). We replace the pclab custom library with Pytorch Lightning ⚡
 - **29/11/2024**: Release of pretrained checkpoint for point cloud completion for the SPVD smallest variant. Check the *Checkpoints* section below.
 - **04/12/2024**: Release of [Gradio](https://www.gradio.app/) app 🚀 for the *Completion* and *Super-Resolution* tasks. Check the *Gradio app* section below for more information. We have also released the checkpoints for point cloud super resolution of the SPVD smallest variant.
+- **08/03/2025**: Release of *Generation* checkpoints for all model variants. For more details check the checkpoint section below. 
 
 # Installation
 
@@ -141,10 +142,17 @@ For completion we use PartNet. Download the data from the official [PartNet webs
 
 # Checkpoints
 
-Please find the checkpoints for point cloud **completion** and **super resolution** at this [link](https://drive.google.com/drive/folders/1pLkapwySaJrv1eJmOCt62eRrgTY-DCo2?usp=sharing).
+Please find the checkpoints for point cloud **generation**, **completion** and **super resolution** at this [link](https://drive.google.com/drive/folders/1pLkapwySaJrv1eJmOCt62eRrgTY-DCo2?usp=sharing).
 
+## Generation
+You are welcome to use these checkpoints in your research! 😊
+
+Before using the Generation checkpoints, we kindly ask that you verify their performance to ensure they function as intended. Due to the numerous experiments conducted, there is a possibility that an incorrect file may have been uploaded by mistake.
+
+If a checkpoint is not operating as expected, feel free to open an issue. We will review it and get back to you as soon as possible—either with a corrected checkpoint or with instructions on how to use it properly.
+
+## Completion and Super-Resolution
 You are welcome to use these checkpoints in your research; simply cite them as **SPVD-S** 😊.
-
 
 *Note*: These checkpoints are not the exact versions used in the paper. Instead, they are newly trained checkpoints of the SPVD smallest variant, validated to produce visually comparable results. To create the get_model partial for model instantiation, use the following code: 
 ```python
