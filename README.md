@@ -18,6 +18,7 @@ This repository contains the official implementation for our publication: *"Effi
 - **29/11/2024**: Release of pretrained checkpoint for point cloud completion for the SPVD smallest variant. Check the *Checkpoints* section below.
 - **04/12/2024**: Release of [Gradio](https://www.gradio.app/) app 🚀 for the *Completion* and *Super-Resolution* tasks. Check the *Gradio app* section below for more information. We have also released the checkpoints for point cloud super resolution of the SPVD smallest variant.
 - **08/03/2025**: Release of *Generation* checkpoints for all model variants. For more details check the *Checkpoints* section below. 
+- **18/11/2025**: Our manuscript has been accepted for publication on **IEEE Transactions on Neural Network and Learning Systems (TNNLS)**
 
 # Installation
 
