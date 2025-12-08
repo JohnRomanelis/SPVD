@@ -1,7 +1,7 @@
-# Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models
+# Efficient and Scalable Point Cloud Generation with Sparse Point-Voxel Diffusion Models - TNNLS 2025
 
 
-[Paper](https://arxiv.org/abs/2408.06145) | [Project Page](https://johnromanelis.github.io/_spvd/) | [Video](https://youtu.be/Ca51lMpHHms) | [Lightning Version](https://github.com/JohnRomanelis/SPVD_Lightning.git)
+[Paper](https://arxiv.org/abs/2408.06145) | [Project Page](https://johnromanelis.github.io/_spvd/) | [Video](https://youtu.be/Ca51lMpHHms) | [Lightning Version](https://github.com/JohnRomanelis/SPVD_Lightning.git) | [Published paper (TNNLS)](https://ieeexplore.ieee.org/document/11277335)
 
 <p align="center">
   <img src="assets/SPVD.gif" width="80%"/>
